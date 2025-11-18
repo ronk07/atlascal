@@ -298,8 +298,109 @@ export default function CalendarView({ onEventDrop, refreshTrigger, selectedCale
         }}
         eventDrop={async (info) => {
             // Handle internal move (update time)
-            // TODO: Implement update API
-            alert("Update event not implemented in MVP yet (Visual update only)");
+            try {
+              const event = info.event;
+              const isAllDay = event.allDay;
+              
+              // Format dates appropriately for all-day vs timed events
+              let startStr: string;
+              let endStr: string;
+              
+              if (isAllDay) {
+                // For all-day events, use date format (YYYY-MM-DD)
+                const startDate = event.start ? new Date(event.start) : new Date();
+                const endDate = event.end ? new Date(event.end) : new Date();
+                startStr = startDate.toISOString().split('T')[0];
+                endStr = endDate.toISOString().split('T')[0];
+              } else {
+                startStr = event.start ? event.start.toISOString() : new Date().toISOString();
+                endStr = event.end ? event.end.toISOString() : new Date().toISOString();
+              }
+              
+              const eventData = {
+                id: event.id,
+                title: event.title,
+                start: startStr,
+                end: endStr,
+                description: event.extendedProps?.description || "",
+                allDay: isAllDay,
+              };
+              
+              const res = await fetch("/api/calendar/events", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(eventData),
+              });
+
+              if (!res.ok) {
+                // Revert the event position on error
+                info.revert();
+                alert("Failed to update event. Please try again.");
+              } else {
+                // Refresh events to ensure consistency
+                if (calendarRef.current) {
+                  const api = calendarRef.current.getApi();
+                  fetchEvents(api.view.activeStart, api.view.activeEnd);
+                }
+              }
+            } catch (error) {
+              console.error("Failed to update event", error);
+              info.revert();
+              alert("Failed to update event. Please try again.");
+            }
+        }}
+        eventResize={async (info) => {
+            // Handle event resize/extend
+            try {
+              const event = info.event;
+              const isAllDay = event.allDay;
+              
+              // Format dates appropriately for all-day vs timed events
+              let startStr: string;
+              let endStr: string;
+              
+              if (isAllDay) {
+                // For all-day events, use date format (YYYY-MM-DD)
+                const startDate = event.start ? new Date(event.start) : new Date();
+                const endDate = event.end ? new Date(event.end) : new Date();
+                startStr = startDate.toISOString().split('T')[0];
+                endStr = endDate.toISOString().split('T')[0];
+              } else {
+                startStr = event.start ? event.start.toISOString() : new Date().toISOString();
+                endStr = event.end ? event.end.toISOString() : new Date().toISOString();
+              }
+              
+              const eventData = {
+                id: event.id,
+                title: event.title,
+                start: startStr,
+                end: endStr,
+                description: event.extendedProps?.description || "",
+                allDay: isAllDay,
+              };
+              
+              const res = await fetch("/api/calendar/events", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(eventData),
+              });
+
+              if (!res.ok) {
+                // Revert the event size on error
+                info.revert();
+                alert("Failed to update event. Please try again.");
+              } else {
+                // Refresh events to ensure consistency
+                if (calendarRef.current) {
+                  const api = calendarRef.current.getApi();
+                  fetchEvents(api.view.activeStart, api.view.activeEnd);
+                }
+              }
+            } catch (error) {
+              console.error("Failed to update event", error);
+              info.revert();
+              alert("Failed to update event. Please try again.");
+            }
         }}
       />
       {createModalOpen && (

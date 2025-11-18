@@ -108,7 +108,7 @@ export async function PUT(request: Request) {
 
   try {
     const body = await request.json();
-    const { id, title, start, end, description } = body;
+    const { id, title, start, end, description, allDay } = body;
 
     if (!id) {
         return NextResponse.json({ error: "Event ID is required" }, { status: 400 });
@@ -119,18 +119,27 @@ export async function PUT(request: Request) {
 
     const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 
-    const event = {
+    // Handle all-day events vs timed events
+    const event: any = {
       summary: title,
       description: description,
-      start: {
+    };
+
+    if (allDay) {
+      // For all-day events, use date format (YYYY-MM-DD)
+      event.start = { date: start };
+      event.end = { date: end };
+    } else {
+      // For timed events, use dateTime with timezone
+      event.start = {
         dateTime: start, // ISO String
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, 
-      },
-      end: {
+      };
+      event.end = {
         dateTime: end, // ISO String
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      },
-    };
+      };
+    }
 
     const response = await calendar.events.patch({
       calendarId: "primary",
