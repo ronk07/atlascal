@@ -10,6 +10,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                 String   @id // email address
+  selectedCalendarIds String?  // JSON array of calendar IDs
+  theme              String?  @default("system") // "light", "dark", or "system"
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
 model Task {
   id                String   @id @default(uuid())
   userId            String

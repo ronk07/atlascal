@@ -164,7 +164,7 @@ export default function CalendarView({ onEventDrop, refreshTrigger, selectedCale
             font-weight: 600;
             color: #2B2B2B;
         }
-        :global(.dark) .fc .fc-toolbar-title {
+        .dark .fc .fc-toolbar-title {
             color: #ffffff;
         }
         .fc .fc-button-primary {
@@ -172,7 +172,7 @@ export default function CalendarView({ onEventDrop, refreshTrigger, selectedCale
             border-color: #2B2B2B;
             text-transform: capitalize;
         }
-        :global(.dark) .fc .fc-button-primary {
+        .dark .fc .fc-button-primary {
             background-color: #404040;
             border-color: #404040;
             color: #ffffff;
@@ -182,77 +182,90 @@ export default function CalendarView({ onEventDrop, refreshTrigger, selectedCale
             background-color: #404040;
             border-color: #404040;
         }
-        :global(.dark) .fc .fc-button-primary:hover {
+        .dark .fc .fc-button-primary:hover {
             background-color: #525252;
             border-color: #525252;
         }
         .fc .fc-col-header-cell {
             color: #2B2B2B;
         }
-        :global(.dark) .fc .fc-col-header-cell {
+        .dark .fc .fc-col-header-cell {
             color: #ededed;
         }
         .fc .fc-col-header-cell-cushion {
             color: #2B2B2B;
             font-weight: 600;
         }
-        :global(.dark) .fc .fc-col-header-cell-cushion {
+        .dark .fc .fc-col-header-cell-cushion {
             color: #ededed;
         }
         .fc .fc-timegrid-slot-label {
             color: #2B2B2B;
         }
-        :global(.dark) .fc .fc-timegrid-slot-label {
+        .dark .fc .fc-timegrid-slot-label {
             color: #ededed;
         }
         .fc .fc-timegrid-slot-label-cushion {
             color: #2B2B2B;
         }
-        :global(.dark) .fc .fc-timegrid-slot-label-cushion {
+        .dark .fc .fc-timegrid-slot-label-cushion {
             color: #ededed;
         }
         .fc .fc-daygrid-day-number {
             color: #2B2B2B;
         }
-        :global(.dark) .fc .fc-daygrid-day-number {
+        .dark .fc .fc-daygrid-day-number {
             color: #ededed;
         }
         .fc .fc-daygrid-day-top {
             color: #2B2B2B;
         }
-        :global(.dark) .fc .fc-daygrid-day-top {
+        .dark .fc .fc-daygrid-day-top {
             color: #ededed;
         }
         .fc .fc-scrollgrid-sync-inner {
             color: #2B2B2B;
         }
-        :global(.dark) .fc .fc-scrollgrid-sync-inner {
+        .dark .fc .fc-scrollgrid-sync-inner {
             color: #ededed;
         }
         .fc .fc-timegrid-axis {
             color: #2B2B2B;
         }
-        :global(.dark) .fc .fc-timegrid-axis {
+        .dark .fc .fc-timegrid-axis {
             color: #ededed;
         }
         .fc .fc-timegrid-axis-cushion {
             color: #2B2B2B;
         }
-        :global(.dark) .fc .fc-timegrid-axis-cushion {
+        .dark .fc .fc-timegrid-axis-cushion {
             color: #ededed;
         }
         .fc-direction-ltr .fc-timegrid-slot-label {
             color: #2B2B2B;
         }
-        :global(.dark) .fc-direction-ltr .fc-timegrid-slot-label {
+        .dark .fc-direction-ltr .fc-timegrid-slot-label {
             color: #ededed;
         }
         /* Calendar Lines */
         .fc-theme-standard td, .fc-theme-standard th {
             border-color: #e5e7eb;
         }
-        :global(.dark) .fc-theme-standard td, :global(.dark) .fc-theme-standard th {
+        .dark .fc-theme-standard td, .dark .fc-theme-standard th {
             border-color: #404040;
+        }
+        /* Calendar background */
+        .fc {
+            background-color: #ffffff;
+        }
+        .dark .fc {
+            background-color: #2B2B2B;
+        }
+        .fc-scrollgrid {
+            background-color: #ffffff;
+        }
+        .dark .fc-scrollgrid {
+            background-color: #2B2B2B;
         }
         `}</style>
       <FullCalendar

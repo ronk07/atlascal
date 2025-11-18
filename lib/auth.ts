@@ -1,5 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import { google } from "googleapis";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -34,11 +35,39 @@ export const authOptions: NextAuthOptions = {
       if (account) {
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
-        token.expiresAt = account.expires_at;
+        token.expiresAt = account.expires_at ? account.expires_at * 1000 : Date.now() + 3600 * 1000; // Convert to milliseconds
       }
       
-      // Handle token refresh if needed here (omitted for simplicity but recommended for production)
-      // For MVP, we assume the session lasts long enough or user re-logins.
+      // Handle token refresh if needed
+      if (token.expiresAt && token.refreshToken) {
+        const now = Date.now();
+        // Refresh token if it expires in less than 5 minutes
+        if (token.expiresAt < now + 5 * 60 * 1000) {
+          try {
+            const oauth2Client = new google.auth.OAuth2(
+              process.env.GOOGLE_CLIENT_ID!,
+              process.env.GOOGLE_CLIENT_SECRET!
+            );
+            
+            oauth2Client.setCredentials({
+              refresh_token: token.refreshToken as string,
+            });
+            
+            const { credentials } = await oauth2Client.refreshAccessToken();
+            
+            token.accessToken = credentials.access_token || undefined;
+            token.expiresAt = credentials.expiry_date || (Date.now() + 3600 * 1000);
+            
+            if (credentials.refresh_token) {
+              token.refreshToken = credentials.refresh_token;
+            }
+          } catch (error) {
+            console.error("Error refreshing access token", error);
+            token.error = "RefreshAccessTokenError";
+          }
+        }
+      }
+      
       return token;
     },
   },

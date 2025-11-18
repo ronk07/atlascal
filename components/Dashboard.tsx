@@ -18,13 +18,27 @@ export default function Dashboard() {
   const [selectedCalendarIds, setSelectedCalendarIds] = useState<string[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem("selectedCalendarIds");
-    if (saved) {
-      setSelectedCalendarIds(JSON.parse(saved));
-    } else {
-      setSelectedCalendarIds(["primary"]);
+    // Load preferences from database
+    const loadPreferences = async () => {
+      try {
+        const res = await fetch("/api/user/preferences");
+        if (res.ok) {
+          const data = await res.json();
+          setSelectedCalendarIds(data.selectedCalendarIds || ["primary"]);
+        } else {
+          // Fallback to default if API fails
+          setSelectedCalendarIds(["primary"]);
+        }
+      } catch (error) {
+        console.error("Failed to load preferences", error);
+        setSelectedCalendarIds(["primary"]);
+      }
+    };
+
+    if (session?.user?.email) {
+      loadPreferences();
     }
-  }, []);
+  }, [session]);
 
   useEffect(() => {
     const containerEl = document.getElementById("external-events");
@@ -88,9 +102,18 @@ export default function Dashboard() {
     }
   };
 
-  const handleSaveCalendarSettings = (ids: string[]) => {
+  const handleSaveCalendarSettings = async (ids: string[]) => {
     setSelectedCalendarIds(ids);
-    localStorage.setItem("selectedCalendarIds", JSON.stringify(ids));
+    // Save to database
+    try {
+      await fetch("/api/user/preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ selectedCalendarIds: ids }),
+      });
+    } catch (error) {
+      console.error("Failed to save calendar preferences", error);
+    }
     setRefreshTrigger((prev) => prev + 1);
   };
 
