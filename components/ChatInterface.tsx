@@ -1,0 +1,203 @@
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import { Send, CalendarCheck, X, Check } from "lucide-react";
+
+interface ChatInterfaceProps {
+  onEventCreated: () => void;
+}
+
+interface EventProposal {
+  title: string;
+  start: string;
+  end: string;
+  description?: string;
+}
+
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  eventProposal?: EventProposal;
+}
+
+export default function ChatInterface({ onEventCreated }: ChatInterfaceProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: input,
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userMsg.content }),
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch");
+
+      const data = await res.json();
+
+      // Check if it's an event proposal
+      if (data.title && data.start && data.end) {
+        const assistantMsg: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: "I've prepared this event for you:",
+          eventProposal: data,
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+      } else {
+        // Just text or error
+        const assistantMsg: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: data.error || "I couldn't understand that request.",
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+      }
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: "Sorry, something went wrong.",
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleConfirmEvent = async (proposal: EventProposal) => {
+    try {
+      const res = await fetch("/api/calendar/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(proposal),
+      });
+
+      if (res.ok) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            role: "assistant",
+            content: `Event "${proposal.title}" added to calendar.`,
+          },
+        ]);
+        onEventCreated();
+      } else {
+        throw new Error("Failed to create event");
+      }
+    } catch (error) {
+      alert("Failed to add event to calendar.");
+    }
+  };
+
+  return (
+    <div className="flex h-full flex-col bg-white dark:bg-[#2B2B2B]">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.length === 0 && (
+            <div className="flex h-full flex-col items-center justify-center text-[#B3B3B3] dark:text-[#A0A0A0] space-y-2">
+                <CalendarCheck className="h-12 w-12" />
+                <p>Chat to create events...</p>
+            </div>
+        )}
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={`flex ${
+              msg.role === "user" ? "justify-end" : "justify-start"
+            }`}
+          >
+            <div
+              className={`max-w-[85%] rounded-lg p-3 ${
+                msg.role === "user"
+                  ? "bg-[#2B2B2B] text-white dark:bg-white dark:text-[#2B2B2B]"
+                  : "bg-[#F0F0F0] text-[#2B2B2B] dark:bg-[#404040] dark:text-white"
+              }`}
+            >
+              <p className="whitespace-pre-wrap">{msg.content}</p>
+              {msg.eventProposal && (
+                <div className="mt-3 rounded bg-white p-3 shadow-sm border border-[#D4D4D4] dark:bg-[#1a1a1a] dark:border-[#404040]">
+                  <div className="font-semibold text-[#2B2B2B] dark:text-white">{msg.eventProposal.title}</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    {new Date(msg.eventProposal.start).toLocaleString()} -{" "}
+                    {new Date(msg.eventProposal.end).toLocaleTimeString()}
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      onClick={() => msg.eventProposal && handleConfirmEvent(msg.eventProposal)}
+                      className="flex items-center gap-1 rounded bg-[#2B2B2B] px-3 py-1.5 text-xs font-medium text-white hover:bg-opacity-90 dark:bg-white dark:text-[#2B2B2B]"
+                    >
+                      <Check className="h-3 w-3" /> Confirm
+                    </button>
+                    <button
+                      onClick={() => {
+                         // In a real app, allow editing. For now, just cancel/ignore.
+                         setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, eventProposal: undefined, content: "Event creation cancelled." } : m));
+                      }}
+                      className="flex items-center gap-1 rounded bg-[#D4D4D4] px-3 py-1.5 text-xs font-medium text-[#2B2B2B] hover:bg-[#C0C0C0] dark:bg-[#525252] dark:text-white dark:hover:bg-[#666666]"
+                    >
+                      <X className="h-3 w-3" /> Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="border-t border-[#D4D4D4] p-4 dark:border-[#404040]">
+        <div className="relative">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
+            placeholder="Remind me to..."
+            className="w-full resize-none rounded-md border border-[#D4D4D4] bg-[#F9F9F9] py-3 pl-4 pr-12 text-[#2B2B2B] placeholder:text-[#B3B3B3] focus:border-[#2B2B2B] focus:outline-none dark:bg-[#1a1a1a] dark:border-[#404040] dark:text-white dark:placeholder:text-[#666666] dark:focus:border-white"
+            rows={2}
+          />
+          <button
+            onClick={sendMessage}
+            disabled={isLoading || !input.trim()}
+            className="absolute right-2 top-2.5 rounded-full p-1.5 text-[#2B2B2B] hover:bg-[#D4D4D4] disabled:opacity-50 dark:text-white dark:hover:bg-[#404040]"
+          >
+            <Send className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
