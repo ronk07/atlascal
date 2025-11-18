@@ -24,7 +24,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-4xl font-bold tracking-tight">Atlas</h1>
           <p className="text-lg text-[#B3B3B3] dark:text-[#A0A0A0]">
-            Natural-Language Chat ⟶ Calendar + Task Manager
+            Chat with your calendar and tasks
           </p>
         </div>
 
