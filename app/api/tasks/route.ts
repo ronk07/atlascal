@@ -22,7 +22,17 @@ export async function GET() {
     });
     return NextResponse.json(tasks);
   } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch tasks" }, { status: 500 });
+    console.error("Failed to fetch tasks:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Error details:", {
+      message: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
+    return NextResponse.json({ 
+      error: "Failed to fetch tasks",
+      details: process.env.NODE_ENV === "development" ? errorMessage : "Internal server error"
+    }, { status: 500 });
   }
 }
 

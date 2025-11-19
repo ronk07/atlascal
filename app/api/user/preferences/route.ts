@@ -30,9 +30,18 @@ export async function GET() {
       theme: user.theme || "system",
     });
   } catch (error) {
-    console.error("Failed to fetch user preferences", error);
+    console.error("Failed to fetch user preferences:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Error details:", {
+      message: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
     return NextResponse.json(
-      { error: "Failed to fetch user preferences" },
+      { 
+        error: "Failed to fetch user preferences",
+        details: process.env.NODE_ENV === "development" ? errorMessage : "Internal server error"
+      },
       { status: 500 }
     );
   }
@@ -77,9 +86,18 @@ export async function PUT(request: Request) {
       theme: user.theme || "system",
     });
   } catch (error) {
-    console.error("Failed to update user preferences", error);
+    console.error("Failed to update user preferences:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Error details:", {
+      message: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
     return NextResponse.json(
-      { error: "Failed to update user preferences" },
+      { 
+        error: "Failed to update user preferences",
+        details: process.env.NODE_ENV === "development" ? errorMessage : "Internal server error"
+      },
       { status: 500 }
     );
   }
