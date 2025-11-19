@@ -60,6 +60,7 @@ export default function TaskList() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(taskData),
       });
+      
       if (res.ok) {
         setNewTask("");
         setNewPriority("Medium");
@@ -67,9 +68,14 @@ export default function TaskList() {
         setNewDuration("");
         setShowForm(false);
         fetchTasks();
+      } else {
+        const errorData = await res.json();
+        console.error("Failed to add task:", errorData);
+        alert(`Failed to add task: ${errorData.details || errorData.error || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Failed to add task", error);
+      alert(`Failed to add task: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setIsLoading(false);
     }

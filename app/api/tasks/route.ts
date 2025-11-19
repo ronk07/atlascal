@@ -53,7 +53,21 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(task);
   } catch (error) {
-    return NextResponse.json({ error: "Failed to create task" }, { status: 500 });
+    console.error("Failed to create task:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    // Log full error for debugging
+    console.error("Error details:", {
+      message: errorMessage,
+      stack: errorStack,
+      name: error instanceof Error ? error.name : undefined,
+    });
+    
+    return NextResponse.json({ 
+      error: "Failed to create task",
+      details: process.env.NODE_ENV === "development" ? errorMessage : "Internal server error"
+    }, { status: 500 });
   }
 }
 
