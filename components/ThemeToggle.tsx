@@ -41,7 +41,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={handleToggle}
-      className="rounded-full p-2 text-[#2B2B2B] hover:bg-[#D4D4D4] dark:text-white dark:hover:bg-[#404040] transition-colors"
+      className="text-[#B3B3B3] hover:text-[#2B2B2B] dark:text-[#A0A0A0] dark:hover:text-white transition-colors"
       aria-label="Toggle dark mode"
     >
       {activeTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
