@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const { data: session } = useSession();
   const [mounted, setMounted] = useState(false);
 
@@ -18,8 +18,10 @@ export function ThemeToggle() {
     return <div className="w-9 h-9" />; // Placeholder to prevent hydration mismatch
   }
 
+  const activeTheme = (theme === "system" ? resolvedTheme : theme) ?? "light";
+
   const handleToggle = async () => {
-    const newTheme = theme === "dark" ? "light" : "dark";
+    const newTheme = activeTheme === "dark" ? "light" : "dark";
     setTheme(newTheme);
     
     // Save theme preference to database when user toggles
@@ -42,8 +44,7 @@ export function ThemeToggle() {
       className="rounded-full p-2 text-[#2B2B2B] hover:bg-[#D4D4D4] dark:text-white dark:hover:bg-[#404040] transition-colors"
       aria-label="Toggle dark mode"
     >
-      {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      {activeTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
     </button>
   );
 }
-

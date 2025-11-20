@@ -5,9 +5,24 @@ import { useTheme } from "next-themes";
 import { useSession } from "next-auth/react";
 
 export function ThemeInitializer() {
-  const { setTheme, theme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme, theme } = useTheme();
   const { data: session, status } = useSession();
   const [hasInitialized, setHasInitialized] = useState(false);
+
+  useEffect(() => {
+    const currentTheme = resolvedTheme ?? theme;
+    if (!currentTheme) return;
+
+    const root = document.documentElement;
+    const body = document.body;
+    const isDark = currentTheme === "dark";
+
+    root.classList.toggle("dark", isDark);
+    body.classList.toggle("dark", isDark);
+
+    root.setAttribute("data-theme", currentTheme);
+    body.setAttribute("data-theme", currentTheme);
+  }, [resolvedTheme, theme]);
 
   useEffect(() => {
     // Wait for session to be loaded
@@ -39,4 +54,3 @@ export function ThemeInitializer() {
 
   return null; // This component doesn't render anything
 }
-

@@ -253,20 +253,6 @@ export default function ChatInterface({ onEventCreated }: ChatInterfaceProps) {
                 <p>Chat to create events...</p>
             </div>
         )}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="max-w-[85%] rounded-lg p-3 bg-[#F0F0F0] text-[#2B2B2B] dark:bg-[#404040] dark:text-white">
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1">
-                  <div className="h-2 w-2 rounded-full bg-[#2B2B2B] dark:bg-white animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <div className="h-2 w-2 rounded-full bg-[#2B2B2B] dark:bg-white animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <div className="h-2 w-2 rounded-full bg-[#2B2B2B] dark:bg-white animate-bounce" style={{ animationDelay: "300ms" }} />
-                </div>
-                <span className="text-sm text-[#6B7280] dark:text-[#A0A0A0]">Processing...</span>
-              </div>
-            </div>
-          </div>
-        )}
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -292,7 +278,7 @@ export default function ChatInterface({ onEventCreated }: ChatInterfaceProps) {
                   <div className="mt-3 flex gap-2">
                     <button
                       onClick={() => msg.eventProposal && handleConfirmEvent(msg.eventProposal)}
-                      className="flex items-center gap-1 rounded bg-[#2B2B2B] px-3 py-1.5 text-xs font-medium text-white hover:bg-opacity-90 dark:bg-white dark:text-[#2B2B2B]"
+                      className="flex items-center gap-1 rounded bg-[#2B2B2B] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#404040] dark:bg-white dark:text-[#2B2B2B] dark:hover:bg-[#e5e5e5]"
                     >
                       <Check className="h-3 w-3" /> Confirm
                     </button>
@@ -320,7 +306,7 @@ export default function ChatInterface({ onEventCreated }: ChatInterfaceProps) {
                       <div className="mt-3 flex gap-2">
                         <button
                           onClick={() => handleConfirmEvent(proposal)}
-                          className="flex items-center gap-1 rounded bg-[#2B2B2B] px-3 py-1.5 text-xs font-medium text-white hover:bg-opacity-90 dark:bg-white dark:text-[#2B2B2B]"
+                          className="flex items-center gap-1 rounded bg-[#2B2B2B] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#404040] dark:bg-white dark:text-[#2B2B2B] dark:hover:bg-[#e5e5e5]"
                         >
                           <Check className="h-3 w-3" /> Confirm
                         </button>
@@ -330,7 +316,7 @@ export default function ChatInterface({ onEventCreated }: ChatInterfaceProps) {
                   <div className="flex gap-2 pt-2">
                     <button
                       onClick={() => handleConfirmAllEvents(msg.eventProposals!)}
-                      className="flex items-center gap-1 rounded bg-[#2B2B2B] px-4 py-2 text-sm font-medium text-white hover:bg-opacity-90 dark:bg-white dark:text-[#2B2B2B]"
+                      className="flex items-center gap-1 rounded bg-[#2B2B2B] px-4 py-2 text-sm font-medium text-white hover:bg-[#404040] dark:bg-white dark:text-[#2B2B2B] dark:hover:bg-[#e5e5e5]"
                     >
                       <Check className="h-4 w-4" /> Confirm All ({msg.eventProposals.length})
                     </button>
@@ -348,6 +334,20 @@ export default function ChatInterface({ onEventCreated }: ChatInterfaceProps) {
             </div>
           </div>
         ))}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="max-w-[85%] rounded-lg p-3 bg-[#F0F0F0] text-[#2B2B2B] dark:bg-[#404040] dark:text-white">
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1">
+                  <div className="h-2 w-2 rounded-full bg-[#2B2B2B] dark:bg-white animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <div className="h-2 w-2 rounded-full bg-[#2B2B2B] dark:bg-white animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <div className="h-2 w-2 rounded-full bg-[#2B2B2B] dark:bg-white animate-bounce" style={{ animationDelay: "300ms" }} />
+                </div>
+                <span className="text-sm text-[#6B7280] dark:text-[#A0A0A0]">Processing...</span>
+              </div>
+            </div>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
