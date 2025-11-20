@@ -119,26 +119,54 @@ export async function PUT(request: Request) {
 
     const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 
-    // Handle all-day events vs timed events
-    const event: any = {
-      summary: title,
-      description: description,
-    };
+    // Fetch existing event to preserve fields that aren't being updated
+    let existingEvent: any = null;
+    try {
+      const existing = await calendar.events.get({
+        calendarId: "primary",
+        eventId: id,
+      });
+      existingEvent = existing.data;
+    } catch (error) {
+      console.error("Failed to fetch existing event:", error);
+    }
 
-    if (allDay) {
-      // For all-day events, use date format (YYYY-MM-DD)
-      event.start = { date: start };
-      event.end = { date: end };
-    } else {
-      // For timed events, use dateTime with timezone
-      event.start = {
-        dateTime: start, // ISO String
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, 
-      };
-      event.end = {
-        dateTime: end, // ISO String
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      };
+    // Handle all-day events vs timed events
+    // Only include fields that are being updated
+    const event: any = {};
+
+    if (title !== undefined) {
+      event.summary = title;
+    } else if (existingEvent?.summary) {
+      event.summary = existingEvent.summary;
+    }
+
+    if (description !== undefined) {
+      event.description = description;
+    } else if (existingEvent?.description) {
+      event.description = existingEvent.description;
+    }
+
+    if (start && end) {
+      if (allDay !== undefined ? allDay : (existingEvent?.start?.date !== undefined)) {
+        // For all-day events, use date format (YYYY-MM-DD)
+        event.start = { date: start.split('T')[0] };
+        event.end = { date: end.split('T')[0] };
+      } else {
+        // For timed events, use dateTime with timezone
+        event.start = {
+          dateTime: start, // ISO String
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, 
+        };
+        event.end = {
+          dateTime: end, // ISO String
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        };
+      }
+    } else if (existingEvent) {
+      // Preserve existing start/end if not provided
+      event.start = existingEvent.start;
+      event.end = existingEvent.end;
     }
 
     const response = await calendar.events.patch({

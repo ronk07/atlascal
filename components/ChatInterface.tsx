@@ -14,6 +14,14 @@ interface EventProposal {
   description?: string;
 }
 
+interface EventUpdate {
+  eventId: string;
+  title?: string;
+  start: string;
+  end: string;
+  description?: string;
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant";
@@ -88,22 +96,95 @@ export default function ChatInterface({ onEventCreated }: ChatInterfaceProps) {
     };
 
     setMessages((prev) => [...prev, userMsg]);
+    const currentInput = input;
     setInput("");
     setIsLoading(true);
 
     try {
+      // Prepare conversation history (only user and assistant messages, no event proposals)
+      const conversationHistory = messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMsg.content }),
+        body: JSON.stringify({ 
+          message: currentInput,
+          conversationHistory: conversationHistory,
+        }),
       });
 
       if (!res.ok) throw new Error("Failed to fetch");
 
       const data = await res.json();
 
-      // Check if it's event proposals (array format)
-      if (data.events && Array.isArray(data.events) && data.events.length > 0) {
+      // Handle update actions
+      if (data.action === "update" && data.updates && Array.isArray(data.updates) && data.updates.length > 0) {
+        // Automatically apply updates
+        const updatePromises = data.updates.map((update: EventUpdate) => handleUpdateEvent(update));
+        await Promise.all(updatePromises);
+        
+        const assistantMsg: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: `I've updated ${data.updates.length} event(s).`,
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+        onEventCreated();
+      } 
+      // Handle both create and update
+      else if (data.action === "both") {
+        // Handle updates first
+        if (data.updates && Array.isArray(data.updates) && data.updates.length > 0) {
+          const updatePromises = data.updates.map((update: EventUpdate) => handleUpdateEvent(update));
+          await Promise.all(updatePromises);
+        }
+        
+        // Handle new events
+        if (data.events && Array.isArray(data.events) && data.events.length > 0) {
+          const events = data.events.filter((e: EventProposal) => e.title && e.start && e.end);
+          
+          if (events.length === 1) {
+            const assistantMsg: Message = {
+              id: (Date.now() + 1).toString(),
+              role: "assistant",
+              content: "I've updated the event and prepared a new one for you:",
+              eventProposal: events[0],
+            };
+            setMessages((prev) => [...prev, assistantMsg]);
+          } else if (events.length > 1) {
+            const assistantMsg: Message = {
+              id: (Date.now() + 1).toString(),
+              role: "assistant",
+              content: `I've updated the event(s) and prepared ${events.length} new event(s) for you:`,
+              eventProposals: events,
+            };
+            setMessages((prev) => [...prev, assistantMsg]);
+          } else {
+            const assistantMsg: Message = {
+              id: (Date.now() + 1).toString(),
+              role: "assistant",
+              content: "I've updated the event(s).",
+            };
+            setMessages((prev) => [...prev, assistantMsg]);
+          }
+        } else {
+          const assistantMsg: Message = {
+            id: (Date.now() + 1).toString(),
+            role: "assistant",
+            content: "I've updated the event(s).",
+          };
+          setMessages((prev) => [...prev, assistantMsg]);
+        }
+        
+        if (data.updates && data.updates.length > 0) {
+          onEventCreated();
+        }
+      }
+      // Handle create actions (existing logic)
+      else if (data.events && Array.isArray(data.events) && data.events.length > 0) {
         const events = data.events.filter((e: EventProposal) => e.title && e.start && e.end);
         
         if (events.length === 0) {
@@ -244,6 +325,29 @@ export default function ChatInterface({ onEventCreated }: ChatInterfaceProps) {
     }
   };
 
+  const handleUpdateEvent = async (update: EventUpdate) => {
+    try {
+      const res = await fetch("/api/calendar/events", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: update.eventId,
+          title: update.title,
+          start: update.start,
+          end: update.end,
+          description: update.description,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update event");
+      }
+    } catch (error) {
+      console.error("Failed to update event:", error);
+      throw error;
+    }
+  };
+
   return (
     <div className="flex h-full flex-col bg-white dark:bg-[#2B2B2B]">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -263,7 +367,7 @@ export default function ChatInterface({ onEventCreated }: ChatInterfaceProps) {
             <div
               className={`max-w-[85%] rounded-lg p-3 ${
                 msg.role === "user"
-                  ? "bg-[#2B2B2B] text-white dark:bg-white dark:text-[#2B2B2B]"
+                  ? "bg-[#2B2B2B] text-white"
                   : "bg-[#F0F0F0] text-[#2B2B2B] dark:bg-[#404040] dark:text-white"
               }`}
             >
