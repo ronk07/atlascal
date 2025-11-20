@@ -287,10 +287,16 @@ export default function CalendarView({ onEventDrop, refreshTrigger, selectedCale
         datesSet={(arg) => {
           fetchEvents(arg.start, arg.end);
         }}
-        eventReceive={(info) => {
+        eventReceive={async (info) => {
             // Handle external drop
             if (onEventDrop) {
-                onEventDrop(info);
+                try {
+                    await onEventDrop(info);
+                } catch (error) {
+                    // If the drop handler fails, remove the event from the calendar
+                    console.error("Event drop handler failed:", error);
+                    info.event.remove();
+                }
             }
         }}
         eventClick={(info) => {

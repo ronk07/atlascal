@@ -62,17 +62,38 @@ export default function Dashboard() {
   const handleEventDrop = async (info: any) => {
     // Handle drop from task list
     // Create the event in Google Calendar
-    const { date } = info;
-    const title = info.draggedEl.getAttribute("data-title");
-    const id = info.draggedEl.getAttribute("data-id");
-    
-    if (!title) return;
-
-    // Default 1 hour duration
-    const start = date;
-    const end = new Date(start.getTime() + 60 * 60 * 1000);
-
     try {
+      // Get the event data - info.event contains the dropped event
+      const event = info.event;
+      const title = event.title || info.draggedEl?.getAttribute("data-title");
+      const id = info.draggedEl?.getAttribute("data-id");
+      
+      if (!title) {
+        console.error("No title found for dropped event");
+        info.event.remove();
+        return;
+      }
+
+      // Get the start time from the event
+      const start = event.start;
+      if (!start) {
+        console.error("No start time found for dropped event");
+        info.event.remove();
+        return;
+      }
+
+      // Calculate end time - use duration from data attribute or default to 1 hour
+      const durationStr = info.draggedEl?.getAttribute("data-duration");
+      let durationMs = 60 * 60 * 1000; // Default 1 hour
+      
+      if (durationStr) {
+        // Parse duration string like "01:00" or "00:30"
+        const [hours, minutes] = durationStr.split(":").map(Number);
+        durationMs = (hours * 60 + minutes) * 60 * 1000;
+      }
+      
+      const end = new Date(start.getTime() + durationMs);
+
       const res = await fetch("/api/calendar/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -84,21 +105,44 @@ export default function Dashboard() {
         }),
       });
 
-      if (res.ok) {
-        if (id) {
-            await fetch("/api/tasks", {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id, scheduled: true }),
-            });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: "Unknown error" }));
+        console.error("Failed to create event from drop:", errorData);
+        alert(`Failed to create event: ${errorData.error || "Unknown error"}`);
+        // Remove the event from the calendar since the API call failed
+        info.event.remove();
+        return;
+      }
+
+      // Mark task as scheduled if we have an ID
+      if (id) {
+        try {
+          await fetch("/api/tasks", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id, scheduled: true }),
+          });
+        } catch (taskError) {
+          console.error("Failed to update task scheduled status:", taskError);
+          // Don't fail the whole operation if task update fails
         }
-        // Refresh calendar
-        setRefreshTrigger((prev) => prev + 1);
-        info.draggedEl.parentNode?.removeChild(info.draggedEl);
+      }
+
+      // Refresh calendar
+      setRefreshTrigger((prev) => prev + 1);
+      
+      // Remove the dragged element from the task list
+      if (info.draggedEl?.parentNode) {
+        info.draggedEl.parentNode.removeChild(info.draggedEl);
       }
     } catch (error) {
-        console.error("Failed to create event from drop", error);
-        info.revert();
+      console.error("Failed to create event from drop", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      alert(`Failed to create event: ${errorMessage}`);
+      // Remove the event from the calendar since the API call failed
+      if (info.event) {
+        info.event.remove();
+      }
     }
   };
 

@@ -19,6 +19,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   eventProposal?: EventProposal;
+  eventProposals?: EventProposal[];
 }
 
 export default function ChatInterface({ onEventCreated }: ChatInterfaceProps) {
@@ -59,8 +60,38 @@ export default function ChatInterface({ onEventCreated }: ChatInterfaceProps) {
 
       const data = await res.json();
 
-      // Check if it's an event proposal
-      if (data.title && data.start && data.end) {
+      // Check if it's event proposals (array format)
+      if (data.events && Array.isArray(data.events) && data.events.length > 0) {
+        const events = data.events.filter((e: EventProposal) => e.title && e.start && e.end);
+        
+        if (events.length === 0) {
+          const assistantMsg: Message = {
+            id: (Date.now() + 1).toString(),
+            role: "assistant",
+            content: data.error || "I couldn't understand that request.",
+          };
+          setMessages((prev) => [...prev, assistantMsg]);
+        } else if (events.length === 1) {
+          // Single event - use the old format for backward compatibility
+          const assistantMsg: Message = {
+            id: (Date.now() + 1).toString(),
+            role: "assistant",
+            content: "I've prepared this event for you:",
+            eventProposal: events[0],
+          };
+          setMessages((prev) => [...prev, assistantMsg]);
+        } else {
+          // Multiple events
+          const assistantMsg: Message = {
+            id: (Date.now() + 1).toString(),
+            role: "assistant",
+            content: `I've prepared ${events.length} events for you:`,
+            eventProposals: events,
+          };
+          setMessages((prev) => [...prev, assistantMsg]);
+        }
+      } else if (data.title && data.start && data.end) {
+        // Backward compatibility: single event in old format
         const assistantMsg: Message = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
@@ -117,6 +148,60 @@ export default function ChatInterface({ onEventCreated }: ChatInterfaceProps) {
     }
   };
 
+  const handleConfirmAllEvents = async (proposals: EventProposal[]) => {
+    try {
+      // Create all events in parallel
+      const promises = proposals.map((proposal) =>
+        fetch("/api/calendar/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(proposal),
+        })
+      );
+
+      const results = await Promise.all(promises);
+      const successful: EventProposal[] = [];
+      const failed: EventProposal[] = [];
+
+      results.forEach((res, index) => {
+        if (res.ok) {
+          successful.push(proposals[index]);
+        } else {
+          failed.push(proposals[index]);
+        }
+      });
+
+      // Show confirmation messages for all successful events
+      successful.forEach((proposal) => {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now().toString() + Math.random(),
+            role: "assistant",
+            content: `Event "${proposal.title}" added to calendar.`,
+          },
+        ]);
+      });
+
+      if (failed.length > 0) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now().toString() + Math.random(),
+            role: "assistant",
+            content: `Failed to add ${failed.length} event(s) to calendar.`,
+          },
+        ]);
+      }
+
+      if (successful.length > 0) {
+        onEventCreated();
+      }
+    } catch (error) {
+      alert("Failed to add events to calendar.");
+    }
+  };
+
   return (
     <div className="flex h-full flex-col bg-white dark:bg-[#2B2B2B]">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -163,6 +248,43 @@ export default function ChatInterface({ onEventCreated }: ChatInterfaceProps) {
                       className="flex items-center gap-1 rounded bg-[#D4D4D4] px-3 py-1.5 text-xs font-medium text-[#2B2B2B] hover:bg-[#C0C0C0] dark:bg-[#525252] dark:text-white dark:hover:bg-[#666666]"
                     >
                       <X className="h-3 w-3" /> Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+              {msg.eventProposals && msg.eventProposals.length > 0 && (
+                <div className="mt-3 space-y-3">
+                  {msg.eventProposals.map((proposal, index) => (
+                    <div key={index} className="rounded bg-white p-3 shadow-sm border border-[#D4D4D4] dark:bg-[#1a1a1a] dark:border-[#404040]">
+                      <div className="font-semibold text-[#2B2B2B] dark:text-white">{proposal.title}</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        {new Date(proposal.start).toLocaleString()} -{" "}
+                        {new Date(proposal.end).toLocaleTimeString()}
+                      </div>
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          onClick={() => handleConfirmEvent(proposal)}
+                          className="flex items-center gap-1 rounded bg-[#2B2B2B] px-3 py-1.5 text-xs font-medium text-white hover:bg-opacity-90 dark:bg-white dark:text-[#2B2B2B]"
+                        >
+                          <Check className="h-3 w-3" /> Confirm
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={() => handleConfirmAllEvents(msg.eventProposals!)}
+                      className="flex items-center gap-1 rounded bg-[#2B2B2B] px-4 py-2 text-sm font-medium text-white hover:bg-opacity-90 dark:bg-white dark:text-[#2B2B2B]"
+                    >
+                      <Check className="h-4 w-4" /> Confirm All ({msg.eventProposals.length})
+                    </button>
+                    <button
+                      onClick={() => {
+                        setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, eventProposals: undefined, content: "Event creation cancelled." } : m));
+                      }}
+                      className="flex items-center gap-1 rounded bg-[#D4D4D4] px-4 py-2 text-sm font-medium text-[#2B2B2B] hover:bg-[#C0C0C0] dark:bg-[#525252] dark:text-white dark:hover:bg-[#666666]"
+                    >
+                      <X className="h-4 w-4" /> Cancel All
                     </button>
                   </div>
                 </div>

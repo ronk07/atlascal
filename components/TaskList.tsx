@@ -369,10 +369,19 @@ export default function TaskList() {
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs">
                   {task.priority && (
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${getPriorityColor(task.priority)}`}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const priorities = ["Low", "Medium", "High"];
+                        const currentIndex = priorities.indexOf(task.priority);
+                        const nextIndex = (currentIndex + 1) % priorities.length;
+                        updateTask(task.id, { priority: priorities[nextIndex] });
+                      }}
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full cursor-pointer hover:opacity-80 transition-opacity ${getPriorityColor(task.priority)}`}
+                    >
                       <Flag className="h-3 w-3" />
                       {task.priority}
-                    </span>
+                    </button>
                   )}
                   {task.date && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[#2B2B2B] bg-[#F0F0F0] dark:text-white dark:bg-[#404040]">
