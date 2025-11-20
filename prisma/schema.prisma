@@ -14,6 +14,7 @@ model User {
   id                 String   @id // email address
   selectedCalendarIds String?  // JSON array of calendar IDs
   theme              String?  @default("system") // "light", "dark", or "system"
+  timezone           String?  @default("America/New_York") // IANA timezone identifier
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }

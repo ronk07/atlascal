@@ -22,14 +22,17 @@ export default function CalendarView({ onEventDrop, refreshTrigger, selectedCale
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedRange, setSelectedRange] = useState<{ start: Date; end: Date } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const calendarRef = useRef<FullCalendar>(null);
 
   const fetchEvents = async (start: Date, end: Date) => {
     if (selectedCalendarIds && selectedCalendarIds.length === 0) {
       setEvents([]);
+      setIsLoading(false);
       return;
     }
 
+    setIsLoading(true);
     try {
       const params = new URLSearchParams({
         start: start.toISOString(),
@@ -57,6 +60,8 @@ export default function CalendarView({ onEventDrop, refreshTrigger, selectedCale
       }
     } catch (error) {
       console.error("Failed to fetch events", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -154,7 +159,15 @@ export default function CalendarView({ onEventDrop, refreshTrigger, selectedCale
   }, [refreshTrigger, selectedCalendarIds]);
 
   return (
-    <div className="h-full w-full bg-white p-4 shadow-sm dark:bg-[#2B2B2B]">
+    <div className="h-full w-full bg-white p-4 shadow-sm dark:bg-[#2B2B2B] relative">
+      {isLoading && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-[#2B2B2B]/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#2B2B2B] border-t-transparent dark:border-white dark:border-t-transparent" />
+            <p className="text-sm text-[#6B7280] dark:text-[#A0A0A0]">Loading calendar events...</p>
+          </div>
+        </div>
+      )}
         <style jsx global>{`
         .fc-theme-standard .fc-scrollgrid {
             border: none;

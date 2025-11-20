@@ -10,29 +10,61 @@ interface Calendar {
   backgroundColor?: string;
 }
 
+// Common timezones with user-friendly labels
+const TIMEZONES = [
+  { value: "America/New_York", label: "Eastern Time (ET)" },
+  { value: "America/Chicago", label: "Central Time (CT)" },
+  { value: "America/Denver", label: "Mountain Time (MT)" },
+  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
+  { value: "America/Phoenix", label: "Arizona (MST)" },
+  { value: "America/Anchorage", label: "Alaska Time (AKT)" },
+  { value: "Pacific/Honolulu", label: "Hawaii Time (HST)" },
+  { value: "America/Toronto", label: "Toronto (ET)" },
+  { value: "America/Vancouver", label: "Vancouver (PT)" },
+  { value: "Europe/London", label: "London (GMT)" },
+  { value: "Europe/Paris", label: "Paris (CET)" },
+  { value: "Europe/Berlin", label: "Berlin (CET)" },
+  { value: "Europe/Madrid", label: "Madrid (CET)" },
+  { value: "Europe/Rome", label: "Rome (CET)" },
+  { value: "Europe/Amsterdam", label: "Amsterdam (CET)" },
+  { value: "Asia/Tokyo", label: "Tokyo (JST)" },
+  { value: "Asia/Shanghai", label: "Shanghai (CST)" },
+  { value: "Asia/Hong_Kong", label: "Hong Kong (HKT)" },
+  { value: "Asia/Singapore", label: "Singapore (SGT)" },
+  { value: "Asia/Dubai", label: "Dubai (GST)" },
+  { value: "Asia/Kolkata", label: "Mumbai/New Delhi (IST)" },
+  { value: "Australia/Sydney", label: "Sydney (AEST)" },
+  { value: "Australia/Melbourne", label: "Melbourne (AEST)" },
+  { value: "Pacific/Auckland", label: "Auckland (NZST)" },
+];
+
 interface CalendarSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedCalendarIds: string[];
-  onSave: (ids: string[]) => void;
+  timezone: string;
+  onSave: (ids: string[], timezone: string) => void;
 }
 
 export function CalendarSettingsModal({
   isOpen,
   onClose,
   selectedCalendarIds,
+  timezone,
   onSave,
 }: CalendarSettingsModalProps) {
   const [calendars, setCalendars] = useState<Calendar[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>(selectedCalendarIds);
+  const [selectedTimezone, setSelectedTimezone] = useState<string>(timezone);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       fetchCalendars();
       setSelectedIds(selectedCalendarIds);
+      setSelectedTimezone(timezone);
     }
-  }, [isOpen, selectedCalendarIds]);
+  }, [isOpen, selectedCalendarIds, timezone]);
 
   const fetchCalendars = async () => {
     setLoading(true);
@@ -70,7 +102,7 @@ export function CalendarSettingsModal({
   };
 
   const handleSave = () => {
-    onSave(selectedIds);
+    onSave(selectedIds, selectedTimezone);
     onClose();
   };
 
@@ -97,39 +129,77 @@ export function CalendarSettingsModal({
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#2B2B2B] border-t-transparent dark:border-white dark:border-t-transparent" />
             </div>
           ) : (
-            <div className="space-y-2">
-              <p className="mb-4 text-sm text-[#6B7280] dark:text-[#A0A0A0]">
-                Select calendars to display in your dashboard:
-              </p>
-              {calendars.map((calendar) => (
-                <button
-                  key={calendar.id}
-                  onClick={() => toggleCalendar(calendar.id)}
-                  className={`flex w-full items-center justify-between rounded-lg border px-4 py-3 transition-colors ${
-                    selectedIds.includes(calendar.id)
-                      ? "border-[#2B2B2B] bg-[#F3F4F6] dark:border-white dark:bg-[#404040]"
-                      : "border-[#E5E7EB] hover:bg-[#F9FAFB] dark:border-[#404040] dark:hover:bg-[#363636]"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: calendar.backgroundColor || "#4285F4" }}
-                    />
-                    <span className="text-sm font-medium text-[#2B2B2B] dark:text-white">
-                      {calendar.summary}
-                    </span>
-                    {calendar.primary && (
-                      <span className="rounded bg-[#E5E7EB] px-1.5 py-0.5 text-xs font-medium text-[#6B7280] dark:bg-[#404040] dark:text-[#A0A0A0]">
-                        Primary
+            <div className="space-y-6">
+              {/* Calendar Selection */}
+              <div>
+                <p className="mb-4 text-sm font-medium text-[#2B2B2B] dark:text-white">
+                  Calendars
+                </p>
+                <p className="mb-4 text-sm text-[#6B7280] dark:text-[#A0A0A0]">
+                  Select calendars to display in your dashboard:
+                </p>
+                <div className="space-y-2">
+                  {calendars.map((calendar) => (
+                    <button
+                      key={calendar.id}
+                      onClick={() => toggleCalendar(calendar.id)}
+                      className={`flex w-full items-center justify-between rounded-lg border px-4 py-3 transition-colors ${
+                        selectedIds.includes(calendar.id)
+                          ? "border-[#2B2B2B] bg-[#F3F4F6] dark:border-white dark:bg-[#404040]"
+                          : "border-[#E5E7EB] hover:bg-[#F9FAFB] dark:border-[#404040] dark:hover:bg-[#363636]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="h-3 w-3 rounded-full"
+                          style={{ backgroundColor: calendar.backgroundColor || "#4285F4" }}
+                        />
+                        <span className="text-sm font-medium text-[#2B2B2B] dark:text-white">
+                          {calendar.summary}
+                        </span>
+                        {calendar.primary && (
+                          <span className="rounded bg-[#E5E7EB] px-1.5 py-0.5 text-xs font-medium text-[#6B7280] dark:bg-[#404040] dark:text-[#A0A0A0]">
+                            Primary
+                          </span>
+                        )}
+                      </div>
+                      {selectedIds.includes(calendar.id) && (
+                        <Check className="h-4 w-4 text-[#2B2B2B] dark:text-white" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Timezone Selection */}
+              <div className="border-t border-[#E5E7EB] pt-6 dark:border-[#404040]">
+                <p className="mb-2 text-sm font-medium text-[#2B2B2B] dark:text-white">
+                  Timezone
+                </p>
+                <p className="mb-4 text-sm text-[#6B7280] dark:text-[#A0A0A0]">
+                  Select your timezone to ensure event times are displayed correctly:
+                </p>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {TIMEZONES.map((tz) => (
+                    <button
+                      key={tz.value}
+                      onClick={() => setSelectedTimezone(tz.value)}
+                      className={`flex w-full items-center justify-between rounded-lg border px-4 py-3 transition-colors ${
+                        selectedTimezone === tz.value
+                          ? "border-[#2B2B2B] bg-[#F3F4F6] dark:border-white dark:bg-[#404040]"
+                          : "border-[#E5E7EB] hover:bg-[#F9FAFB] dark:border-[#404040] dark:hover:bg-[#363636]"
+                      }`}
+                    >
+                      <span className="text-sm font-medium text-[#2B2B2B] dark:text-white">
+                        {tz.label}
                       </span>
-                    )}
-                  </div>
-                  {selectedIds.includes(calendar.id) && (
-                    <Check className="h-4 w-4 text-[#2B2B2B] dark:text-white" />
-                  )}
-                </button>
-              ))}
+                      {selectedTimezone === tz.value && (
+                        <Check className="h-4 w-4 text-[#2B2B2B] dark:text-white" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>

@@ -1,5 +1,8 @@
 import { model } from "@/lib/gemini";
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
@@ -9,9 +12,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
     }
 
+    // Get user session and timezone
+    const session = await getServerSession(authOptions);
+    let userTimezone = "America/New_York"; // Default timezone
+    
+    if (session?.user?.email) {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: session.user.email },
+        });
+        if (user?.timezone) {
+          userTimezone = user.timezone;
+        }
+      } catch (error) {
+        console.error("Failed to fetch user timezone:", error);
+        // Continue with default timezone
+      }
+    }
+
     const now = new Date();
+    // Format current time in user's timezone for context
+    const nowInTimezone = new Intl.DateTimeFormat("en-US", {
+      timeZone: userTimezone,
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).format(now);
+
     const prompt = `
-      Current date and time: ${now.toISOString()}
+      Current date and time (in user's timezone ${userTimezone}): ${nowInTimezone}
+      Current date and time (UTC): ${now.toISOString()}
       User message: "${message}"
       
       Extract event details from the user's message. The message may contain ONE or MULTIPLE events.
@@ -29,11 +62,15 @@ export async function POST(request: Request) {
       
       If there is only ONE event, return an array with one object. If there are MULTIPLE events (e.g., "remind me to X at 5pm and Y at 6pm and Z at 9pm"), extract ALL of them into the events array.
       
-      Rules:
-      - If no date is mentioned for an event, assume today (${now.toDateString()}).
+      IMPORTANT TIMEZONE RULES:
+      - The user's timezone is: ${userTimezone}
+      - When the user specifies times (like "11am", "8am", "5pm"), interpret them in the user's timezone (${userTimezone})
+      - Convert the times to ISO 8601 format (UTC) for the start and end fields
+      - For example, if user says "11am" in ${userTimezone}, convert that to the correct UTC time
+      - If no date is mentioned for an event, assume today in the user's timezone (${nowInTimezone.split(",")[0]})
       - If no duration is mentioned, assume 1 hour.
       - If the message is not about creating events, try to infer tasks or events anyway, or return an error field.
-      - Ensure all dates are in ISO 8601 format.
+      - Ensure all dates are in ISO 8601 format (UTC).
       - Do not include markdown formatting (like \`\`\`json).
       - Look for keywords like "and", "also", commas, or multiple time references to detect multiple events.
     `;

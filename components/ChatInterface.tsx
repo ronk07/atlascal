@@ -26,6 +26,7 @@ export default function ChatInterface({ onEventCreated }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [timezone, setTimezone] = useState<string>("America/New_York");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -35,6 +36,47 @@ export default function ChatInterface({ onEventCreated }: ChatInterfaceProps) {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    // Load user timezone from preferences
+    const loadTimezone = async () => {
+      try {
+        const res = await fetch("/api/user/preferences");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.timezone) {
+            setTimezone(data.timezone);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load timezone", error);
+      }
+    };
+    loadTimezone();
+  }, []);
+
+  const formatDateTime = (isoString: string, timezone: string) => {
+    const date = new Date(isoString);
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).format(date);
+  };
+
+  const formatTime = (isoString: string, timezone: string) => {
+    const date = new Date(isoString);
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).format(date);
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -205,11 +247,25 @@ export default function ChatInterface({ onEventCreated }: ChatInterfaceProps) {
   return (
     <div className="flex h-full flex-col bg-white dark:bg-[#2B2B2B]">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 && (
+        {messages.length === 0 && !isLoading && (
             <div className="flex h-full flex-col items-center justify-center text-[#B3B3B3] dark:text-[#A0A0A0] space-y-2">
                 <CalendarCheck className="h-12 w-12" />
                 <p>Chat to create events...</p>
             </div>
+        )}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="max-w-[85%] rounded-lg p-3 bg-[#F0F0F0] text-[#2B2B2B] dark:bg-[#404040] dark:text-white">
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1">
+                  <div className="h-2 w-2 rounded-full bg-[#2B2B2B] dark:bg-white animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <div className="h-2 w-2 rounded-full bg-[#2B2B2B] dark:bg-white animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <div className="h-2 w-2 rounded-full bg-[#2B2B2B] dark:bg-white animate-bounce" style={{ animationDelay: "300ms" }} />
+                </div>
+                <span className="text-sm text-[#6B7280] dark:text-[#A0A0A0]">Processing...</span>
+              </div>
+            </div>
+          </div>
         )}
         {messages.map((msg) => (
           <div
@@ -230,8 +286,8 @@ export default function ChatInterface({ onEventCreated }: ChatInterfaceProps) {
                 <div className="mt-3 rounded bg-white p-3 shadow-sm border border-[#D4D4D4] dark:bg-[#1a1a1a] dark:border-[#404040]">
                   <div className="font-semibold text-[#2B2B2B] dark:text-white">{msg.eventProposal.title}</div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">
-                    {new Date(msg.eventProposal.start).toLocaleString()} -{" "}
-                    {new Date(msg.eventProposal.end).toLocaleTimeString()}
+                    {formatDateTime(msg.eventProposal.start, timezone)} -{" "}
+                    {formatTime(msg.eventProposal.end, timezone)}
                   </div>
                   <div className="mt-3 flex gap-2">
                     <button
@@ -258,8 +314,8 @@ export default function ChatInterface({ onEventCreated }: ChatInterfaceProps) {
                     <div key={index} className="rounded bg-white p-3 shadow-sm border border-[#D4D4D4] dark:bg-[#1a1a1a] dark:border-[#404040]">
                       <div className="font-semibold text-[#2B2B2B] dark:text-white">{proposal.title}</div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">
-                        {new Date(proposal.start).toLocaleString()} -{" "}
-                        {new Date(proposal.end).toLocaleTimeString()}
+                        {formatDateTime(proposal.start, timezone)} -{" "}
+                        {formatTime(proposal.end, timezone)}
                       </div>
                       <div className="mt-3 flex gap-2">
                         <button

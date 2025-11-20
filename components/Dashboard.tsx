@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showCalendarSettings, setShowCalendarSettings] = useState(false);
   const [selectedCalendarIds, setSelectedCalendarIds] = useState<string[]>([]);
+  const [timezone, setTimezone] = useState<string>("America/New_York");
 
   useEffect(() => {
     // Load preferences from database
@@ -25,13 +26,16 @@ export default function Dashboard() {
         if (res.ok) {
           const data = await res.json();
           setSelectedCalendarIds(data.selectedCalendarIds || ["primary"]);
+          setTimezone(data.timezone || "America/New_York");
         } else {
           // Fallback to default if API fails
           setSelectedCalendarIds(["primary"]);
+          setTimezone("America/New_York");
         }
       } catch (error) {
         console.error("Failed to load preferences", error);
         setSelectedCalendarIds(["primary"]);
+        setTimezone("America/New_York");
       }
     };
 
@@ -146,17 +150,21 @@ export default function Dashboard() {
     }
   };
 
-  const handleSaveCalendarSettings = async (ids: string[]) => {
+  const handleSaveCalendarSettings = async (ids: string[], newTimezone: string) => {
     setSelectedCalendarIds(ids);
+    setTimezone(newTimezone);
     // Save to database
     try {
       await fetch("/api/user/preferences", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selectedCalendarIds: ids }),
+        body: JSON.stringify({ 
+          selectedCalendarIds: ids,
+          timezone: newTimezone 
+        }),
       });
     } catch (error) {
-      console.error("Failed to save calendar preferences", error);
+      console.error("Failed to save preferences", error);
     }
     setRefreshTrigger((prev) => prev + 1);
   };
@@ -167,6 +175,7 @@ export default function Dashboard() {
         isOpen={showCalendarSettings}
         onClose={() => setShowCalendarSettings(false)}
         selectedCalendarIds={selectedCalendarIds}
+        timezone={timezone}
         onSave={handleSaveCalendarSettings}
       />
       {/* Left Panel: Calendar */}
@@ -178,6 +187,7 @@ export default function Dashboard() {
             <button
               onClick={() => setShowCalendarSettings(true)}
               className="text-[#B3B3B3] hover:text-[#2B2B2B] dark:text-[#A0A0A0] dark:hover:text-white"
+              title="Settings"
             >
               <Settings className="h-5 w-5" />
             </button>

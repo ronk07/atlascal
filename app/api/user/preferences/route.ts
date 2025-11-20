@@ -20,6 +20,7 @@ export async function GET() {
       return NextResponse.json({
         selectedCalendarIds: ["primary"],
         theme: "system",
+        timezone: "America/New_York",
       });
     }
 
@@ -28,6 +29,7 @@ export async function GET() {
         ? JSON.parse(user.selectedCalendarIds)
         : ["primary"],
       theme: user.theme || "system",
+      timezone: user.timezone || "America/New_York",
     });
   } catch (error) {
     console.error("Failed to fetch user preferences:", error);
@@ -56,7 +58,7 @@ export async function PUT(request: Request) {
 
   try {
     const body = await request.json();
-    const { selectedCalendarIds, theme } = body;
+    const { selectedCalendarIds, theme, timezone } = body;
 
     const updateData: any = {};
     if (selectedCalendarIds !== undefined) {
@@ -64,6 +66,9 @@ export async function PUT(request: Request) {
     }
     if (theme !== undefined) {
       updateData.theme = theme;
+    }
+    if (timezone !== undefined) {
+      updateData.timezone = timezone;
     }
 
     // Upsert user preferences
@@ -76,6 +81,7 @@ export async function PUT(request: Request) {
           ? JSON.stringify(selectedCalendarIds)
           : JSON.stringify(["primary"]),
         theme: theme || "system",
+        timezone: timezone || "America/New_York",
       },
     });
 
@@ -84,6 +90,7 @@ export async function PUT(request: Request) {
         ? JSON.parse(user.selectedCalendarIds)
         : ["primary"],
       theme: user.theme || "system",
+      timezone: user.timezone || "America/New_York",
     });
   } catch (error) {
     console.error("Failed to update user preferences:", error);
