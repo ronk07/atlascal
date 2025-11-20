@@ -6,7 +6,7 @@ import ChatInterface from "./ChatInterface";
 import TaskList from "./TaskList";
 import { ThemeToggle } from "./ThemeToggle";
 import { Draggable } from "@fullcalendar/interaction";
-import { LogOut, MessageSquare, ListTodo, Settings } from "lucide-react";
+import { LogOut, MessageSquare, ListTodo, Settings, MessageCircle } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { CalendarSettingsModal } from "./CalendarSettingsModal";
 
@@ -184,6 +184,13 @@ export default function Dashboard() {
           <h1 className="text-xl font-bold text-[#2B2B2B] dark:text-white">Atlas</h1>
           <div className="flex items-center gap-4">
             <ThemeToggle />
+            <button
+              onClick={() => window.open("https://form.typeform.com/to/tw3ylDTf", "_blank")}
+              className="text-[#B3B3B3] hover:text-[#2B2B2B] dark:text-[#A0A0A0] dark:hover:text-white"
+              title="Feedback"
+            >
+              <MessageCircle className="h-5 w-5" />
+            </button>
             <button
               onClick={() => setShowCalendarSettings(true)}
               className="text-[#B3B3B3] hover:text-[#2B2B2B] dark:text-[#A0A0A0] dark:hover:text-white"
